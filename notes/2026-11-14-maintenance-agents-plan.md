@@ -31,6 +31,18 @@ questions are in [charging prices per network](2026-11-14-charging-prices-per-ne
   - Per-site prices come instead from drivers' reports (already in the app) and Open Charge Map.
 - **Next:** build `charge-line-data`, then run the same small POC job on each platform, the free ones first (§7).
 
+## Decisions after the research (14 November)
+
+- **Platform: Claude Code cloud scheduled tasks only.** No proof of concept for each option: §7's table is kept as
+  a record of what was considered.
+- **Plan: Claude Pro.**
+  - Scheduled runs share Pro's usage limits with everything else, so they run in Melbourne's small hours and stay
+    small (the catalogue split into weekly batches).
+  - The API-billed options (Managed Agents, GitHub Agentic Workflows, the Codex action) are out.
+- **POCs repo:** [charge-line-pocs](https://github.com/Suv4o/charge-line-pocs) (public).
+- **The price agent also finds new charging networks** and adds them to the list with their prices (§4, "New
+  networks").
+
 ## 0. The three research notes in one table
 
 | Question | Answer | Note |
@@ -147,6 +159,26 @@ Details and sources in [charging prices per network](2026-11-14-charging-prices-
   - **The LLM agent handles the rest each month:** allowed published sources (NRMA with permission, network
     announcements on allowed sites, Open Charge Map). It opens a pull request when an allowed source supports a
     change. Otherwise it opens an issue for the owner to check in the network's app.
+### New chargers and new networks (added after the owner's decision)
+
+- **New charger sites need no agent.** The server rebuilds the charger file every day from OpenStreetMap and Open
+  Charge Map, so a new site appears in the app within a day of being mapped.
+- **New networks do need one.** Today the app knows seven networks by name (a Swift `enum`). Any other operator is
+  "Other network", at a typical A$0.65.
+  - The price data becomes a list of networks, each with an id, a display name, the operator names it appears under
+    in OpenStreetMap and Open Charge Map, a typical price (or none yet), the source and the date checked.
+  - The app reads that list. A new network then shows its own name and price without an App Store release. The seven
+    built-in networks keep their special handling (Tesla's prices and stalls, live status).
+- **How the price agent finds them** each month:
+  1. It reads the public charger file (`/v1/chargers/au`, ODbL, no key needed) and counts fast sites by operator.
+  2. Any operator with three or more fast sites that matches no network in the list is a candidate.
+  3. It looks the network up from allowed sources only: the network's own site if its terms allow it, Open Charge
+     Map, and The Driven. It records the name, what it charges if that's published, and whether its terms forbid
+     automated reading.
+  4. It opens a pull request adding the network: with a price when an allowed source gives one, otherwise with no
+     price and an issue for the owner to check the network's app.
+- **Cost:** one download of a public file plus a few page reads a month. A$0 extra.
+
 - **Worth checking by hand now:** a CarsGuide survey of Sydney at peak time (15 July 2026) found Evie at $0.70–0.75
   (we use 0.69), bp pulse at $0.66–0.79 (0.65) and Tesla at $0.79 at 300 kW+ (0.55 and 0.65). Sydney at peak is the
   dear end, but it's worth a look in the apps.

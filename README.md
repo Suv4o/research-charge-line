@@ -45,4 +45,4 @@ every claim.
 
 ## Related
 
-- Proofs of concept that test these notes: the Charge Line POCs repo.
+- Proofs of concept that test these notes: [charge-line-pocs](https://github.com/Suv4o/charge-line-pocs).
