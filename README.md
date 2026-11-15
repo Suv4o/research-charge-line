@@ -42,6 +42,7 @@ every claim.
 | 2026-11-14 | [Charging prices per network and per site](notes/2026-11-14-charging-prices-per-network.md) | Can prices be kept current per network, or per site? |
 | 2026-11-14 | [New EV discovery](notes/2026-11-14-new-ev-discovery.md) | How does the catalogue agent find cars and brands new to Australia? |
 | 2026-11-14 | [Maintenance agents: the plan](notes/2026-11-14-maintenance-agents-plan.md) | The data repo, how data reaches the app, and a POC for every option |
+| 2026-11-15 | [Maintenance agents on GitHub Agentic Workflows](notes/2026-11-15-github-agentic-workflows.md) | How do the agents run as gh-aw workflows with Claude, and what does it cost? |
 
 ## Related
 

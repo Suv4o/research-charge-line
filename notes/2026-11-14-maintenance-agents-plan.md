@@ -8,6 +8,12 @@ small job. The platform facts are in [maintenance agents](2026-11-12-maintenance
 questions are in [charging prices per network](2026-11-14-charging-prices-per-network.md) and
 [finding new EVs](2026-11-14-new-ev-discovery.md).
 
+> **Update, 15 November 2026:** the owner moved the agents to **GitHub Agentic Workflows with the Claude engine**,
+> billed through the Anthropic API (about US$6 a month, estimate). The reasons are stronger guard rails, no sharing
+> of the Pro plan's limits, and a worked example to show others. The cloud scheduled tasks below are no longer the
+> plan. The data repo, server and app design (§2–§5) carry over. See
+> [maintenance agents on GitHub Agentic Workflows](2026-11-15-github-agentic-workflows.md).
+
 ## Bottom line
 
 - **Platform:** Claude Code's cloud scheduled tasks stay first. No competitor beats them on cost (A$0 on top of the
