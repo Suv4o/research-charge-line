@@ -23,8 +23,8 @@ until the first runs are measured.
   - an Anthropic API key;
   - Anthropic **Workload Identity Federation** (no stored key at all; recommended here);
   - Claude models through a GitHub Copilot plan.
-- **Cost: about US$6 a month (about A$9) with Claude Sonnet 5.5** for both agents (estimate), plus A$0 of Actions
-  time because `charge-line-data` is public. Haiku 5.5 would be about US$1.50, Opus 5.5 about US$11. Hard caps per
+- **Cost: about US$3–4 a month (about A$5–6) with Claude Sonnet 5.5** for both agents (estimate), plus A$0 of
+  Actions time because `charge-line-data` is public. Haiku 5.5 would be under US$1, Opus 5.5 about US$6. Hard caps per
   run and per day are built in.
 - **Why it's worth the API bill over the cloud tasks:**
   - **The agent can't write.** It runs read-only. Its pull request is built by a separate job, only from files it is
@@ -120,13 +120,13 @@ re-enabling.
   about 30,000 output tokens, about 20 hosted web searches.
 - **Prices:** web search is US$10 per 1,000 searches; web fetch is billed as tokens only.
 - **Detection:** the threat-detection pass is small, about US$0.05 on Sonnet.
-- **Runs per month:** about 4.3 catalogue runs plus 1 price run.
+- **Runs per month:** 2 catalogue runs (fortnightly, the owner's choice on 15 November) plus 1 price run.
 
 | Model (input/output per million tokens) | Per run | Per month |
 | --- | ---: | ---: |
-| Haiku 5.5 (US$0.10/US$0.50) | ~US$0.25 (mostly web searches) | **~US$1.50** |
-| **Sonnet 5.5 (US$2/US$10)** | ~US$1 | **~US$6 (~A$9)** |
-| Opus 5.5 (US$4/US$20) | ~US$2 | **~US$11** |
+| Haiku 5.5 (US$0.10/US$0.50) | ~US$0.25 (mostly web searches) | **~US$0.80** |
+| **Sonnet 5.5 (US$2/US$10)** | ~US$1 | **~US$3–4 (~A$5–6)** |
+| Opus 5.5 (US$4/US$20) | ~US$2 | **~US$6** |
 
 - **Users don't change it.** The agents' cost is the same at 2,000, 10,000 or 50,000 users. Serving the two small
   data files stays negligible (the plan §2).
@@ -147,7 +147,7 @@ schema/                          JSON Schema for both
 scripts/validate.mjs             shape, ranges, unique and kept IDs, sources present (also checks IDs against main)
 .github/workflows/
   validate.yml                   ordinary Actions: runs the validator on every pull request (required check)
-  catalogue.md + .lock.yml       agentic: weekly, a quarter of the brands plus the new-EV sweep
+  catalogue.md + .lock.yml       agentic: fortnightly, the 12 makes checked longest ago plus the new-EV sweep
   prices.md + .lock.yml          agentic: monthly, typical prices plus new networks
   shared/sources.md              imported by both: allowed sources, the do-not-read list, the rules
 .gitattributes                   lock files marked generated (gh-aw writes it)
@@ -162,6 +162,19 @@ LICENSE                          ODbL 1.0
   `allowed-files`.
 
 ### The catalogue workflow (sketch, to be checked against the compiler)
+
+> **Built on 15 November** in [charge-line-data](https://github.com/Suv4o/charge-line-data), and compiled cleanly
+> with gh-aw v1.2.2. The built version differs from this sketch in four ways:
+>
+> - **Schedule:** fortnightly (`cron: "0 3 1,15 * *"` with `timezone: Australia/Melbourne`), the owner's choice.
+> - **Rotation:** the 12 makes checked longest ago each run, so each make is re-checked about every two months.
+> - **WIF:** the identifiers come from repository variables (`${{ vars.… }}`), which the compiler accepts.
+> - **Web blocking:** Claude's hosted web uses a `blocked` list (the do-not-read sites). An allow-list of every
+>   maker's Australian domain proved brittle. The firewall's allow-list still governs everything the agent fetches
+>   itself.
+>
+> Also, a plain script downloads The Driven's feed (10 seconds apart) and BITRE's spreadsheet before the agent
+> starts.
 
 ```aw
 ---
