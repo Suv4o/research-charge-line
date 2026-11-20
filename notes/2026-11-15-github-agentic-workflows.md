@@ -7,6 +7,10 @@ This note covers what gh-aw is in November 2026, how Claude plugs into it, what 
 around it. The data design (the public `charge-line-data` repo, the server, the app's built-in plus saved copy) is
 unchanged from [the plan](2026-11-14-maintenance-agents-plan.md) §2–§5.
 
+> **Update, 20 November 2026: built and live.** Both agents run monthly on Claude Opus 5.5 for about US$5 a month,
+> their first pull requests are merged, and the server and the app (1.0.2) now take the data from the repo. §7 has
+> what happened, the measured costs and the lessons. Where the sections below disagree with §7, §7 is current.
+
 Read from gh-aw's own documentation (the `docs/` folder of [github/gh-aw](https://github.com/github/gh-aw) at
 v1.2.x, 15 November), GitHub's changelog, GitHub's Copilot plans page and Anthropic's docs. Costs are estimates
 until the first runs are measured.
@@ -130,6 +134,8 @@ re-enabling.
 
 - **Users don't change it.** The agents' cost is the same at 2,000, 10,000 or 50,000 users. Serving the two small
   data files stays negligible (the plan §2).
+- **Measured (§7):** a catalogue run cost US$0.60 on Sonnet 5.5 and US$3.47 on Opus 5.5, a price run US$0.68 and
+  US$2.23. The owner chose Opus for both, monthly: about US$5 a month.
 - **First runs set the real number.** `gh aw audit <run>` gives tokens and AI credits for a run; `gh aw logs` and
   `gh aw forecast` give monthly ranges. The per-run cap is then set just above the measured cost.
 - **Against the cloud tasks:**
@@ -166,8 +172,10 @@ LICENSE                          ODbL 1.0
 > **Built on 15 November** in [charge-line-data](https://github.com/Suv4o/charge-line-data), and compiled cleanly
 > with gh-aw v1.2.2. The built version differs from this sketch in four ways:
 >
-> - **Schedule:** fortnightly (`cron: "0 3 1,15 * *"` with `timezone: Australia/Melbourne`), the owner's choice.
-> - **Rotation:** the 12 makes checked longest ago each run, so each make is re-checked about every two months.
+> - **Schedule:** fortnightly at first (`cron: "0 3 1,15 * *"` with `timezone: Australia/Melbourne`); from
+>   18 November both agents run monthly, the catalogue on the 1st and prices on the 8th (§7).
+> - **Rotation:** the 12 makes checked longest ago each run, so each make is re-checked about every four months
+>   (every two while it ran fortnightly).
 > - **WIF:** the identifiers come from repository variables (`${{ vars.… }}`), which the compiler accepts.
 > - **Web blocking:** Claude's hosted web uses a `blocked` list (the do-not-read sites). An allow-list of every
 >   maker's Australian domain proved brittle. The firewall's allow-list still governs everything the agent fetches
@@ -281,6 +289,9 @@ created.
 
 ## 6. Open points
 
+> **Settled by the build (§7):** the compiler accepts repository variables in `engine.auth`; the schedule uses
+> `timezone: Australia/Melbourne`; costs are measured.
+
 - **The workflow sketch is unverified.** It follows the docs but hasn't been compiled. `gh aw compile` will say what
   it rejects. Points to check:
   - whether `engine.auth` accepts repository variables (`${{ vars.… }}`) instead of literal IDs;
@@ -297,6 +308,84 @@ created.
   - WIF, `hosted-web`, budgets and fuzzy schedules are new.
 
   The new article can point to the old one and say what changed.
+
+## 7. What happened: built and live (15–20 November)
+
+### Setting it up: what broke, and the fix
+
+Each of these cost a run before it worked. Together they are most of what is worth telling anyone who sets this up.
+
+| What happened | Why | Fix |
+| --- | --- | --- |
+| Claude couldn't sign in: "Anthropic OIDC token unavailable" | GitHub's OIDC `sub` now names the owner and repository by their immutable IDs (`repo:<owner>@<id>/<repo>@<id>:ref:…`); the Console's wizard filled in the old form. The Console's **Authentication events** showed the refused claims and the reason | The federation rule's subject pattern in the new form |
+| WebFetch failed: "Unable to verify if domain is safe to fetch" | Claude Code checks each domain with Anthropic before fetching, and the sandbox can't reach that check | `engine.args: ["--settings", "{\"skipWebFetchPreflight\": true}"]`; the firewall's allow-list still decides what can be fetched |
+| Commands refused, and the agent gave up | In the sandbox's permission mode, chained commands (`cd …; python3 …`) are refused | Shared rules: one command at a time, files through Edit and Write, "a refused command is never a reason to stop" |
+| The agent couldn't find its memory | The memory branch is mounted at `/tmp/gh-aw/repo-memory/<id>/` | The path in the instructions |
+| WebSearch answered 403 | The agent passed its own `allowed_domains`, which can't be combined with the workflow's blocked list | "Don't pass `allowed_domains` or `blocked_domains`" in the rules |
+| An Opus run stopped early twice | gh-aw's guard against repeated prompt-cache misses (5 by default), then the per-run cap | `max-turn-cache-misses: 10`; caps set from measured runs |
+| The live runs were refused: "You have reached your specified workspace API usage limits" | November's test runs had used the workspace's US$15 limit | The owner raised the limit; the next run went through |
+| `validate` failed on the first price pull request | A test assumed an operator was still unlisted, and the agent had just listed it | Tests use fixed sample data, never the live files |
+
+Two more facts about gh-aw itself:
+
+- Pull requests opened with Actions' own token don't start other workflows, so `validate` wouldn't run on them. A
+  fine-grained token (`GH_AW_CI_TRIGGER_TOKEN`, Contents read and write on this one repo) lets gh-aw push an empty
+  commit that starts it.
+- gh-aw opens an "[aw] Detection Runs" issue to log threat-detection problems. It says it expires in 30 days, but
+  only gh-aw's maintenance workflow closes expired issues, and that workflow is generated only when some workflow
+  sets `expires:`. Without it, the issue just stays open, which is harmless.
+
+### Sonnet or Opus: measured on the same task
+
+Both models ran each workflow once in staged mode, with the same instructions and the same starting memory.
+
+| | Sonnet 5.5 | Opus 5.5 |
+| --- | --- | --- |
+| **Catalogue run** | US$0.60, 12.8 min. Five new cars; skipped the re-check of known makes | US$3.47, 15.6 min, 91 turns. Six new cars from makers' own pages, two corrections, and an issue where sources disagreed |
+| **Price run** | US$0.68, 6.6 min. Decided 7 of 12 unlisted operators | US$2.23, 9.1 min. Decided all 12, with stronger sources (state governments, councils, the operators) |
+
+**The owner chose Opus for both, monthly** (catalogue on the 1st, prices on the 8th): about US$5 a month (about
+A$8). Manual runs can still pick Sonnet. Caps: US$6 a run and US$12 a day for the catalogue, US$4.50 and US$9 for
+prices.
+
+### The first live runs (19 November)
+
+- **Catalogue** (US$3.17, 14 minutes, 90 turns): six new entries (Deepal E07 ×2, Mitsubishi ASX VR-e LS, MG U9 EV,
+  Xpeng X9 ×2), each with its source and figure. It kept four cars as candidates with reasons, and opened an issue:
+  the "Chery E5" is the renamed Omoda E5, and reports give a faster DC figure than the file has.
+- **Prices** (US$1.79, 8 minutes, 38 turns): two new networks (Exploren, which took over Engie's chargers, and
+  Wevolt), without prices because no source it may read gives one, and ten operators matched to existing networks
+  (for example Yurika, RAA and the Queensland Electric Super Highway to Chargefox). It flagged two of its own
+  matches as risky.
+- **The owner reviewed and merged both.** On the Chery issue the owner decided to keep the cautious figure until
+  Chery's spec sheet confirms the new one.
+- **Closing the loop:** the shared rules now have the agents read their own open issues first, follow only the
+  repository owner's comments (anyone can comment on a public repo), never open the same issue twice, and write
+  `Closes #N` when a pull request settles one.
+
+### From the repo to drivers
+
+- **The server** serves `main` as `/v1/vehicles/au` and `/v1/networks/au`, public like the charger file. Named after
+  the repo's `networks.json`, not "prices". It asks GitHub at most once an hour, when a request comes in, with
+  GitHub's ETag, and checks a new copy before serving it: the shape version, no id dropped, the numbers a plan
+  needs, prices under A$5. It checks types, not lists of allowed values, so the data can grow without a deploy. A
+  copy that fails keeps the last good one, saved on the server's disk.
+- **The app (1.0.2, submitted 20 November)** ships with both files built in and, at most once a day, asks the
+  server for newer ones with an ETag. A new copy is used from the next launch, so nothing changes during a trip. A
+  car or network that doesn't decode is left out, not the file.
+- **Networks:** sites now match a network by the file's names, the same rule the agents use, so operators the agent
+  maps (Yurika, RAA…) count as Chargefox. The seven networks the app knows keep their special handling; a network
+  the agents add shows its own name, and its own price once it has one.
+- **One catch, from the app's tests:** they capped fast charging at 500 kW, and the Xpeng X9 takes 542 kW. The
+  planner was fine; the app's sanity checks now use the data repo's own limits, so a car the repo accepts can't fail
+  them.
+
+### Still open
+
+- **Sources the sandbox can't reach yet:** ROVER's approvals list doesn't render in the sandbox's browser, BITRE's
+  download timed out, and several makers' sites refuse automated readers.
+- **The log agent** in the private server repo, after the logging task (the plan §5).
+- **The article** on how Charge Line keeps itself current.
 
 ## Sources
 
